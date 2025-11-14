@@ -11,9 +11,50 @@ import {
   MapPin,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import toast from "react-hot-toast";
+import Spinner from "./ui/Spinner";
+
+const loginSchema = z.object({
+  email: z
+    .string()
+    .email()
+    .refine((val) => val.endsWith("@gmail.com"), {
+      message: "Email must be Gmail Address",
+    }),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+type loginFormData = z.infer<typeof loginSchema>;
 
 export default function AuthPage() {
+  const [showPassword, setShowPassword] = useState(false);
+
   const router = useRouter();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset
+  } = useForm<loginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
+
+   const onSubmit = (data: loginFormData) => {
+    try {
+      console.log("Login Data:", data);
+      toast.success("Login Successful!");
+      reset();
+      router.push("/dashboard"); // redirect after login
+    } catch (error) {
+      toast.error("Login Failed. Try again!");
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -76,61 +117,68 @@ export default function AuthPage() {
           </div>
 
           {/* Login Form */}
-          <div>
-            <div className="mb-4">
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="email"
-                  placeholder="Email"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
-              </div>
-            </div>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
-            <div className="mb-4">
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="password"
-                  placeholder="Password"
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  <Eye className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
+          {/* EMAIL */}
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/3 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="email"
+              placeholder="Email"
+              {...register("email")}
+              aria-invalid={errors.email ? "true" : "false"}
+              className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.email ? "border-red-500" : "border-gray-300"
+              }`}
+            />
+            <p className="min-h-5 text-red-500 text-sm mt-1">{errors.email?.message}</p>
+          </div>
 
-            <div className="flex items-center justify-between mb-6">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 text-blue-600 rounded"
-                />
-                <span className="text-sm text-gray-600">Remember me</span>
-              </label>
-              <button
-                onClick={() => router.push("/forgetpassword")}
-                type="button"
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
-              >
-                Forgot Password?
-              </button>
-            </div>
-
+          {/* PASSWORD */}
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/3 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              {...register("password")}
+              aria-invalid={errors.password ? "true" : "false"}
+              className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.password ? "border-red-500" : "border-gray-300"
+              }`}
+            />
             <button
-              type="submit"
-              className="cursor-pointer w-full bg-linear-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
-              Log In
+              {showPassword ? <EyeOff className="w-5 h-6" /> : <Eye className="w-5 h-5" /> }
+            </button>
+            <p className="min-h-5 text-red-500 text-sm mt-1">{errors.password?.message}</p>
+          </div>
+
+          {/* REMEMBER ME & FORGOT PASSWORD */}
+          <div className="flex items-center justify-between mb-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" />
+              <span className="text-sm text-gray-600">Remember me</span>
+            </label>
+            <button
+              onClick={() => router.push("/forgetpassword")}
+              type="button"
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Forgot Password?
             </button>
           </div>
+
+          {/* SUBMIT */}
+          <button
+            type="submit"
+            className="w-full bg-linear-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-all shadow-lg hover:shadow-xl"
+          >
+            {isSubmitting ? <Spinner /> : "Login"}
+          </button>
+        </form>
 
           <div className="mt-6 text-center">
             <span className="text-gray-600">Don't have an account? </span>
@@ -199,8 +247,6 @@ export default function AuthPage() {
             <p className="text-blue-100 text-lg">
               Everything you need is full of passion and interest.
             </p>
-
-         
           </div>
         </div>
       </div>
